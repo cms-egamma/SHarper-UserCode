@@ -56,24 +56,21 @@ process.TFileService = cms.Service("TFileService",
 )
 
 process.egRegTreeMaker = cms.EDAnalyzer("EGRegTreeMaker",
-                                        verticesTag = cms.InputTag("offlineSlimmedPrimaryVertices"),
-                                        rhoTag = cms.InputTag("fixedGridRhoFastjetAll"),
-                                        genPartsTag = cms.InputTag("prunedGenParticles"),
-                                        scTag = cms.VInputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALBarrel","particleFlowSuperClusterECAL:particleFlowSuperClusterECALEndcapWithPreshower"),
+                                        verticesTag = cms.InputTag("offlinePrimaryVertices"),
+                                        rhoTag = cms.InputTag("fixedGridRhoFastjetAllTmp"),
+                                        genPartsTag = cms.InputTag("genParticles"),
+                                        puSumTag = cms.InputTag("addPileupInfo"),
+                                     #   scTag = cms.VInputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALBarrel","particleFlowSuperClusterECAL:particleFlowSuperClusterECALEndcapWithPreshower"),
+                                        scTag = cms.VInputTag("particleFlowEGamma",),
                                         scAltTag = cms.VInputTag("particleFlowSuperClusterECALNoThres:particleFlowSuperClusterECALBarrel","particleFlowSuperClusterECALNoThres:particleFlowSuperClusterECALEndcapWithPreshower"),
-                                        ecalHitsEBTag = cms.InputTag("reducedEgamma","reducedEBRecHits"),
-                                        ecalHitsEETag = cms.InputTag("reducedEgamma","reducedEERecHits"),
-                                        elesTag = cms.InputTag("slimmedElectrons")
+                                        ecalHitsEBTag = cms.InputTag("reducedEcalRecHitsEB"),
+                                        ecalHitsEETag = cms.InputTag("reducedEcalRecHitsEE"),
+                                        elesTag = cms.InputTag("gedGsfElectrons"),
+                                        phosTag = cms.InputTag("gedPhotons")
                                         )
 
-process.egRegTreeMaker.verticesTag = cms.InputTag("offlinePrimaryVertices")
-process.egRegTreeMaker.rhoTag = cms.InputTag("fixedGridRhoFastjetAllTmp")
-process.egRegTreeMaker.genPartsTag = cms.InputTag("genParticles")
-process.egRegTreeMaker.elesTag = cms.InputTag("gedGsfElectrons")
-process.egRegTreeMaker.ecalHitsEBTag = cms.InputTag("reducedEcalRecHitsEB")
-process.egRegTreeMaker.ecalHitsEETag = cms.InputTag("reducedEcalRecHitsEE")
-
 process.load("SHarper.TrigNtup.rePFSuperCluster_cff")
+
 
 process.p = cms.Path(process.rePFSuperClusterThresSeq*process.egRegTreeMaker)
 process.AODSIMoutput = cms.OutputModule("PoolOutputModule",
@@ -90,3 +87,14 @@ process.AODSIMoutput = cms.OutputModule("PoolOutputModule",
                                     )                                           
                                    )
 #process.out = cms.EndPath(process.AODSIMoutput)
+
+def setEventsToProcess(process,eventsToProcess):
+    process.source.eventsToProcess = cms.untracked.VEventRange()
+    for event in eventsToProcess:
+        runnr = event.split(":")[0]
+        eventnr = event.split(":")[2]
+        process.source.eventsToProcess.append('{runnr}:{eventnr}-{runnr}:{eventnr}'.format(runnr=runnr,eventnr=eventnr))
+
+#eventsToProcess = ['1:1:9322756']
+#setEventsToProcess(process,eventsToProcess)
+
