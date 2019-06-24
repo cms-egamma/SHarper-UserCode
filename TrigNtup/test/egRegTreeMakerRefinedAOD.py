@@ -57,7 +57,7 @@ process.TFileService = cms.Service("TFileService",
 
 process.egRegTreeMaker = cms.EDAnalyzer("EGRegTreeMaker",
                                         verticesTag = cms.InputTag("offlinePrimaryVertices"),
-                                        rhoTag = cms.InputTag("fixedGridRhoFastjetAll"),
+                                        rhoTag = cms.InputTag("fixedGridRhoFastjetAllTmp"),
                                         genPartsTag = cms.InputTag("genParticles"),
                                         puSumTag = cms.InputTag("addPileupInfo"),
                                      #   scTag = cms.VInputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALBarrel","particleFlowSuperClusterECAL:particleFlowSuperClusterECALEndcapWithPreshower"),
@@ -70,6 +70,7 @@ process.egRegTreeMaker = cms.EDAnalyzer("EGRegTreeMaker",
                                         )
 
 process.load("SHarper.TrigNtup.rePFSuperCluster_cff")
+
 
 process.p = cms.Path(process.rePFSuperClusterThresSeq*process.egRegTreeMaker)
 process.AODSIMoutput = cms.OutputModule("PoolOutputModule",
@@ -86,3 +87,14 @@ process.AODSIMoutput = cms.OutputModule("PoolOutputModule",
                                     )                                           
                                    )
 #process.out = cms.EndPath(process.AODSIMoutput)
+
+def setEventsToProcess(process,eventsToProcess):
+    process.source.eventsToProcess = cms.untracked.VEventRange()
+    for event in eventsToProcess:
+        runnr = event.split(":")[0]
+        eventnr = event.split(":")[2]
+        process.source.eventsToProcess.append('{runnr}:{eventnr}-{runnr}:{eventnr}'.format(runnr=runnr,eventnr=eventnr))
+
+#eventsToProcess = ['1:1:9322756']
+#setEventsToProcess(process,eventsToProcess)
+

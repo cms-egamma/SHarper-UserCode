@@ -37,8 +37,8 @@ void EGRegTreeStruct::setBranchAddresses(TTree* tree)
   tree->SetBranchAddress("nrPUIntTrue",&nrPUIntTrue);
   tree->SetBranchAddress("evt",&evt);
   tree->SetBranchAddress("sc",&sc);
-  tree->SetBranchAddress("scFull",&ssFull);
-  tree->SetBranchAddress("scFrac",&ssFrac);
+  tree->SetBranchAddress("ssFull",&ssFull);
+  tree->SetBranchAddress("ssFrac",&ssFrac);
   tree->SetBranchAddress("ele",&ele);
   tree->SetBranchAddress("pho",&pho);
   tree->SetBranchAddress("eleSSFull",&eleSSFull);
@@ -165,9 +165,9 @@ void SuperClustStruct::fill(const reco::SuperCluster& sc,const EcalChannelStatus
     const int iEtaCorr = ebDetId.ieta() - (ebDetId.ieta() > 0 ? +1 : -1);
     const int iEtaCorr26 = ebDetId.ieta() - (ebDetId.ieta() > 0 ? +26 : -26);
     iEtaMod5 = iEtaCorr%5;
-    iEtaMod20 = std::abs(ebDetId.ieta()<=25) ? iEtaCorr%20 : iEtaCorr26%20;
+    iEtaMod20 = std::abs(ebDetId.ieta())<=25 ? iEtaCorr%20 : iEtaCorr26%20;
     iPhiMod2 = (ebDetId.iphi()-1)%2;
-    iPhiMod20 = (ebDetId.iphi()-2)%20;
+    iPhiMod20 = (ebDetId.iphi()-1)%20;
     auto gapCode=[](int iEtaAbs){
       if(iEtaAbs==25 || iEtaAbs==45 || iEtaAbs==65 || iEtaAbs==85) return -1;//before gap
       else if(iEtaAbs==1 || iEtaAbs==26 || iEtaAbs==46 || iEtaAbs==66) return 1;//after gap
@@ -283,7 +283,7 @@ void ShowerShapeStruct::fill(const reco::GsfElectron::ShowerShape& eleSS,const r
   e2x5Left = eleSS.e2x5Left;
   e2x5Right = eleSS.e2x5Right;
   sigmaIEtaIEta = eleSS.sigmaIetaIeta;
-  sigmaIEtaIPhi = 0;
+  sigmaIEtaIPhi = eleSS.sigmaIetaIphi;
   sigmaIPhiIPhi = eleSS.sigmaIphiIphi;
 }
 
@@ -309,6 +309,6 @@ void ShowerShapeStruct::fill(const reco::Photon::ShowerShape& phoSS)
   e2x5Left = phoSS.e2x5Left;
   e2x5Right = phoSS.e2x5Right;
   sigmaIEtaIEta = phoSS.sigmaIetaIeta;
-  sigmaIEtaIPhi = 0;
+  sigmaIEtaIPhi = phoSS.sigmaIetaIphi;
   sigmaIPhiIPhi = phoSS.sigmaIphiIphi;
 }
