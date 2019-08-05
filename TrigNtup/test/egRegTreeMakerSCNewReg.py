@@ -32,14 +32,11 @@ process.load("Configuration.Geometry.GeometryRecoDB_cff")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 from Configuration.AlCa.autoCond import autoCond
 from Configuration.AlCa.GlobalTag import GlobalTag
-if options.isMC:
-    process.GlobalTag = GlobalTag(process.GlobalTag, '105X_mc2017_realistic_v5', '')
-#    process.GlobalTag = GlobalTag(process.GlobalTag, '103X_mc2017_realistic_v1', '')
-else:
-    from SHarper.SHNtupliser.globalTags_cfi import getGlobalTagNameData
-    globalTagName = getGlobalTagNameData(datasetVersion)
-    process.GlobalTag = GlobalTag(process.GlobalTag, globalTagName,'')
-    process.GlobalTag = GlobalTag(process.GlobalTag, '103X_dataRun2_v6_AC_v01', '')
+
+#gt doesnt really matter much as no reco but nice to get it right
+#process.GlobalTag = GlobalTag(process.GlobalTag, '105X_mc2017_realistic_v5', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, '105X_upgrade2018_realistic_v4', '')
+
 
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Geometry.CaloEventSetup.CaloTowerConstituents_cfi")
@@ -56,31 +53,21 @@ process.TFileService = cms.Service("TFileService",
 )
 
 process.egRegTreeMaker = cms.EDAnalyzer("EGRegTreeMaker",
-                                        verticesTag = cms.InputTag("offlineSlimmedPrimaryVertices"),
-                                        rhoTag = cms.InputTag("fixedGridRhoFastjetAll"),
-                                        genPartsTag = cms.InputTag("prunedGenParticles"),
+                                        verticesTag = cms.InputTag("offlinePrimaryVertices"),
+                                        rhoTag = cms.InputTag("fixedGridRhoFastjetAllTmp"),
+                                        genPartsTag = cms.InputTag("genParticles"),
                                         puSumTag = cms.InputTag("addPileupInfo"),
-  
-#                                        scTag = cms.VInputTag("reducedEgamma:reducedSuperClusters",),
                                         scTag = cms.VInputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALBarrel","particleFlowSuperClusterECAL:particleFlowSuperClusterECALEndcapWithPreshower"),
-                                        scAltTag = cms.VInputTag(),
-                                        ecalHitsEBTag = cms.InputTag("reducedEgamma","reducedEBRecHits"),
-                                        ecalHitsEETag = cms.InputTag("reducedEgamma","reducedEERecHits"),
-                                        elesTag = cms.InputTag("slimmedElectrons"),
-                                        phosTag = cms.InputTag("slimmedPhotons"),
+                                        scAltTag = cms.VInputTag("particleFlowSuperClusterECALNewReg:particleFlowSuperClusterECALBarrel","particleFlowSuperClusterECALNewReg:particleFlowSuperClusterECALEndcapWithPreshower"),
+                                        ecalHitsEBTag = cms.InputTag("reducedEcalRecHitsEB"),
+                                        ecalHitsEETag = cms.InputTag("reducedEcalRecHitsEE"),
+                                        elesTag = cms.InputTag("gedGsfElectrons"),
+                                        phosTag = cms.InputTag("gedPhotons"),
                                         elesAltTag = cms.VInputTag(),
                                         phosAltTag = cms.VInputTag()
                                         )
 
-process.egRegTreeMaker.elesTag = cms.InputTag("gedGsfElectrons")
-process.egRegTreeMaker.phosTag = cms.InputTag("gedPhotons")
-process.egRegTreeMaker.ecalHitsEBTag = cms.InputTag("reducedEcalRecHitsEB")
-process.egRegTreeMaker.ecalHitsEETag = cms.InputTag("reducedEcalRecHitsEE")
-process.egRegTreeMaker.verticesTag = cms.InputTag("offlinePrimaryVertices")
-process.egRegTreeMaker.rhoTag = cms.InputTag("fixedGridRhoFastjetAllTmp")
-process.egRegTreeMaker.genPartsTag = cms.InputTag("genParticles")
-
-process.particleFlowSuperClusterECAL = cms.EDProducer(
+process.particleFlowSuperClusterECALNewReg = cms.EDProducer(
     "EGSuperClusCorrector",
     colls = cms.VPSet(
         cms.PSet(
@@ -105,33 +92,48 @@ process.particleFlowSuperClusterECAL = cms.EDProducer(
     )
 )
 
+process.p = cms.Path(process.particleFlowSuperClusterECALNewReg*process.egRegTreeMaker)
 
 
-process.p = cms.Path(process.particleFlowSuperClusterECAL*process.egRegTreeMaker)
-
-def readSCRegresFromDBFile(process,filename):
+process.AODSIMoutput = cms.OutputModule("PoolOutputModule",
+    compressionAlgorithm = cms.untracked.string('LZMA'),
+    compressionLevel = cms.untracked.int32(4),
+    dataset = cms.untracked.PSet(
+        dataTier = cms.untracked.string('AODSIM'),
+        filterName = cms.untracked.string('')
+    ),
+    eventAutoFlushCompressedSize = cms.untracked.int32(15728640),
+    fileName = cms.untracked.string(options.outputFile.replace(".root","_EDM.root")),
+    outputCommands = cms.untracked.vstring('drop *',
+                                           "keep *_*_*_HEEP",
+                                    )                                           
+                                   )
+#process.out = cms.EndPath(process.AODSIMoutput)
+def readSCRegresFromDBFile(process,filename=None,suffex="2017UL"):
     from CondCore.CondDB.CondDB_cfi import CondDB
-   # CondDBReg = CondDB.clone(connect = 'sqlite_file:{}'.format(filename))
-    CondDBReg = CondDB.clone(connect = 'frontier://FrontierPrep/CMS_CONDITIONS')
+    if filename:
+        CondDBReg = CondDB.clone(connect = 'sqlite_file:{}'.format(filename))
+    else:
+        CondDBReg = CondDB.clone(connect = 'frontier://FrontierProd/CMS_CONDITIONS')
     process.scRegres = cms.ESSource("PoolDBESSource",CondDBReg,
                                      DumpStat=cms.untracked.bool(False),
                                      toGet = cms.VPSet(
 cms.PSet(record = cms.string("GBRDWrapperRcd"),
          label = cms.untracked.string("pfscecal_EBCorrection_offline_v2"),
-         tag = cms.string("pfscecal_EBCorrection_offline_v2_2017UL")),
+         tag = cms.string("pfscecal_EBCorrection_offline_v2_{}".format(suffex))),
 cms.PSet(record = cms.string("GBRDWrapperRcd"),
          label = cms.untracked.string("pfscecal_EECorrection_offline_v2"),
-         tag = cms.string("pfscecal_EECorrection_offline_v2_2017UL")),
+         tag = cms.string("pfscecal_EECorrection_offline_v2_{}".format(suffex))),
 cms.PSet(record = cms.string("GBRDWrapperRcd"),
          label = cms.untracked.string("pfscecal_EBUncertainty_offline_v2"),
-         tag = cms.string("pfscecal_EBUncertainty_offline_v2_2017UL")),
+         tag = cms.string("pfscecal_EBUncertainty_offline_v2_{}".format(suffex))),
 cms.PSet(record = cms.string("GBRDWrapperRcd"),
          label = cms.untracked.string("pfscecal_EEUncertainty_offline_v2"),
-         tag = cms.string("pfscecal_EEUncertainty_offline_v2_2017UL")),
+         tag = cms.string("pfscecal_EEUncertainty_offline_v2_{}".format(suffex))),
 ))
     process.es_prefer_scRegres = cms.ESPrefer("PoolDBESSource","scRegres")
     return process
-readSCRegresFromDBFile(process,"scReg_2017_UL_realIC.db")
+readSCRegresFromDBFile(process,suffex="2018UL")
 
 
 
